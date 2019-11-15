@@ -1,5 +1,4 @@
-# Generous Interface Fashion
-[![Build Status](https://travis-ci.org/riksantikvarieambetet/Generous-Interface-Fashion.svg?branch=master)](https://travis-ci.org/riksantikvarieambetet/Generous-Interface-Fashion)
+# Generous Interface Tools
 
 This project was created within an evaluation of generous interfaces as a complement to common web interfaces of archives and museums often dominated by text search. This prototype is centered around images, fashion and the history of dress and costume. The intended user of the prototype is a person with deep interest in the topic and who is an active hobbyist producing her own designs or clothes. She could be a cosplayer, a reenactor, or simply someone who likes to make vintage or historical clothing. 
 
@@ -25,12 +24,6 @@ npm run serve
 
 ### Fetching Data
 
-#### Prerequisites
-
- - An Europeana API key
- - A billing enabled Google service account with Google Vision access enabled.
-
-Note that you will be prompted for your Europeana API key and the path to your Google service account file.
 
 ```bash
 cd data
