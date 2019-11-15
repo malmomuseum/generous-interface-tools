@@ -1,16 +1,19 @@
 <template>
   <div>
-    <div v-show="labelFilterIsActive || anyColorFilterIsActive" ref="flerp" class="flerp" role="button" :aria-pressed="isShown" @click="toggle">
+    <div v-show="labelFilterIsActive || anyTimeFilterIsActive" ref="flerp" class="flerp" role="button" :aria-pressed="isShown" @click="toggle">
       <span>{{ $t('selectedFilters') }}</span>
       <div v-show="isShown" aria-hidden="true"><i class="fas fa-angle-down" /></div>
       <div v-show="!isShown" aria-hidden="true"><i class="fas fa-angle-up" /></div>
     </div>
     <div v-show="isShown" ref="footer" class="footer">
-      <div v-for="color in selectedSnappedColorIds" :key="color" :style="{ background: color, 'border-color': color }" class="color">
-        <div class="close-btn" aria-label="remove color" role="button" @click="removeColor(color)">
+
+      <div v-for="time in selectedSnappedTimeIds" :key="time" class="label">
+        <div class="close-btn" aria-label="remove time" @click="removeTime(time)">
           <i class="fas fa-trash-alt" aria-hidden="true" />
         </div>
+        <span>{{ time }}</span>
       </div>
+
 
       <div v-for="label in selectedLabelIds" :key="label" class="label">
         <div class="close-btn" aria-label="remove label" @click="removeLabel(label)">
@@ -19,8 +22,8 @@
         <span>{{ label }}</span>
       </div>
 
-      <div v-show="labelFilterIsActive || anyColorFilterIsActive" class="right-btn" aria-label="remove all filters" role="button" @click="resetFilters">
-        <i class="fas fa-bomb" aria-hidden="true" />
+      <div v-show="labelFilterIsActive || anyTimeFilterIsActive" class="right-btn" aria-label="remove all filters" role="button" @click="resetFilters">
+        <i class="fas fa-trash-alt" aria-hidden="true" />
       </div>
     </div>
   </div>
@@ -28,7 +31,6 @@
 
 <script>
 import fontawesome from '@fortawesome/fontawesome';
-import faBomb from '@fortawesome/fontawesome-free-solid/faBomb';
 import faTrashAlt from '@fortawesome/fontawesome-free-solid/faTrashAlt';
 import faAngleDown from '@fortawesome/fontawesome-free-solid/faAngleDown';
 import faAngleUp from '@fortawesome/fontawesome-free-solid/faAngleUp';
@@ -38,7 +40,6 @@ import Vue from 'vue';
 import { store } from '../store';
 
 fontawesome.library.add(faTrashAlt);
-fontawesome.library.add(faBomb);
 fontawesome.library.add(faAngleDown);
 fontawesome.library.add(faAngleUp);
 
@@ -51,9 +52,9 @@ export default {
   },
   computed: {
     ...mapGetters([
-      'anyColorFilterIsActive',
+      'anyTimeFilterIsActive',
       'labelFilterIsActive',
-      'selectedSnappedColorIds',
+      'selectedSnappedTimeIds',
       'selectedLabelIds',
     ]),
   },
@@ -79,14 +80,14 @@ export default {
     },
 
     resetFilters() {
-      store.commit('replaceSnappedColorIds', []);
+      store.commit('replaceSnappedTimeIds', []);
       store.commit('replaceLabelIds', []);
       store.commit('resetVisibleLimit');
       this.$root.$emit('triggerFiltering');
     },
 
-    removeColor(color) {
-      store.commit('setSelectedSnappedColorId', color); // toggle...
+    removeTime(time) {
+      store.commit('setSelectedSnappedTimeId', time); // toggle...
       this.$root.$emit('triggerFiltering');
     },
 

@@ -1,30 +1,27 @@
 <template>
   <div class="object">
-    <img :src="object.edm_preview" :alt="object.application.description" @click="toggle()">
+    <img :src="object.image" :alt="object.title" @click="toggle()">
 
-    <modal :name="object.europeana_record" :classes="['v--modal details']" height="auto" transition="slide-north">
+    <modal :name="object.url" :classes="['v--modal details']" height="auto" transition="slide-north">
       <close-btn @click.native="toggle" />
 
-      <img :src="object.edm_preview" :alt="object.application.description">
+      <img :src="object.image" :alt="object.title">
 
-      <div class="image-colors">
-        <color-btn v-for="color in object.application.css_colors" :key="color" :color="color" />
-      </div>
+ 
 
       <div class="image-labels">
-        <label-btn v-for="label in object.application.labels" :key="label" :label="label" />
+        <label-btn v-for="label in object.labels" :key="label" :label="label" />
       </div>
 
-      <p>{{ object.application.description }}</p>
+      <p>{{ object.title }}</p>
 
-      <p class="fine-print">{{ $t('imageProvidedBy') }} {{ object.edm_data_provider }} {{ $t('underLicense') }} <a :href="object.edm_rights" target="_blank">{{ resolveLicense(object.edm_rights) }} <i aria-hidden="true" class="fas fa-external-link-alt" /></a>. {{ $t('moreObjectDetails') }} <a :href="object.edm_is_shown_at" target="_blank">{{ object.edm_data_provider }} <i aria-hidden="true" class="fas fa-external-link-alt" /></a></p>
+      <p class="fine-print">{{ $t('imageProvidedBy') }} {{ object.provider }} {{ $t('underLicense') }} <a :href="object.rights" target="_blank">{{ resolveLicense(object.rights) }} <i aria-hidden="true" class="fas fa-external-link-alt" /></a>. {{ $t('moreObjectDetails') }} <a :href="object.url" target="_blank">{{ object.provider }} <i aria-hidden="true" class="fas fa-external-link-alt" /></a></p>
     </modal>
   </div>
 </template>
 
 <script>
 import LabelBtn from './LabelBtn';
-import ColorBtn from './ColorBtn';
 import CloseBtn from './CloseBtn';
 import { store } from '../store';
 import fontawesome from '@fortawesome/fontawesome';
@@ -36,7 +33,6 @@ export default {
   name: 'ObjectView',
   components: {
     LabelBtn,
-    ColorBtn,
     CloseBtn,
   },
   props: {
@@ -57,8 +53,8 @@ export default {
   },
   methods: {
     toggle() {
-      if (!this.isShown) this.$modal.show(this.object.europeana_record);
-      if (this.isShown) this.$modal.hide(this.object.europeana_record);
+      if (!this.isShown) this.$modal.show(this.object.url);
+      if (this.isShown) this.$modal.hide(this.object.url);
       this.isShown = !this.isShown;
     },
 

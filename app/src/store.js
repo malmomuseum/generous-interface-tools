@@ -12,7 +12,7 @@ export const store = new Vuex.Store({
 
     isLoadingImages: false,
 
-    selectedSnappedColorIds: [],
+    selectedSnappedTimeIds: [],
     selectedLabelIds: [],
   },
   mutations: {
@@ -39,16 +39,16 @@ export const store = new Vuex.Store({
     loadingImages: state => (state.isLoadingImages = true),
     notLoadingImages: state => (state.isLoadingImages = false),
 
-    replaceSnappedColorIds: (state, ids) => {
-      state.selectedSnappedColorIds = ids;
+    replaceSnappedTimeIds: (state, ids) => {
+      state.selectedSnappedTimeIds = ids;
     },
 
-    setSelectedSnappedColorId: (state, id) => {
-      if (state.selectedSnappedColorIds.includes(id)) {
-        let index = state.selectedSnappedColorIds.indexOf(id);
-        if (index !== -1) state.selectedSnappedColorIds.splice(index, 1);
+    setSelectedSnappedTimeId: (state, id) => {
+      if (state.selectedSnappedTimeIds.includes(id)) {
+        let index = state.selectedSnappedTimeIds.indexOf(id);
+        if (index !== -1) state.selectedSnappedTimeIds.splice(index, 1);
       } else {
-        state.selectedSnappedColorIds.push(id);
+        state.selectedSnappedTimeIds.push(id);
       }
     },
 
@@ -66,8 +66,8 @@ export const store = new Vuex.Store({
     },
   },
   getters: {
-    anyColorFilterIsActive: state => {
-      if (state.selectedSnappedColorIds.length < 1) return false;
+    anyTimeFilterIsActive: state => {
+      if (state.selectedSnappedTimeIds.length < 1) return false;
       return true;
     },
 
@@ -79,7 +79,7 @@ export const store = new Vuex.Store({
     numberOfActiveItems: state => state.activeItems.length,
     numberOfItems: state => state.allItems.length,
 
-    selectedSnappedColorIds: state => state.selectedSnappedColorIds,
+    selectedSnappedTimeIds: state => state.selectedSnappedTimeIds,
     selectedLabelIds: state => state.selectedLabelIds,
   },
 });

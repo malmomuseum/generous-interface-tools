@@ -5,25 +5,28 @@
 
       <span class="left"><span class="no-mobile">{{ $t('nItemsPrefix') }} </span><animated-number :number="numberOfActiveItems" /> {{ $t('nItemsMidfix') }} {{ numberOfItems }} {{ $t('nItemsSuffix') }}</span>
 
+      <div :class="{ active: anyTimeFilterIsActive }" class="menu-btn" role="button" aria-label="Toggle time filter" :aria-pressed="timeFilterOpen" @click="toggleTimeFilter">
+        <i aria-hidden="true" class="fas fa-clock" />
+      </div>
+
+
       <div :class="{ active: labelFilterIsActive }" class="menu-btn" role="button" aria-label="Toggle label filter" :aria-pressed="labelFilterOpen" @click="toggleLabelFilter">
         <i aria-hidden="true" class="fas fa-tag" />
       </div>
-      <div :class="{ active: anyColorFilterIsActive }" class="menu-btn" role="button" aria-label="Toggle color filter" :aria-pressed="colorFilterOpen" @click="toggleColorFilter">
-        <i aria-hidden="true" class="fas fa-palette" />
-      </div>
+
 
     </div>
-    <transition name="slide-north">
-      <filter-container v-if="colorFilterOpen">
-        <color-mountain :colors="colorStats" />
-        <close-btn @click.native="toggleColorFilter" />
+  <transition name="slide-north">
+      <filter-container v-if="timeFilterOpen">
+        <time-stack :labels="timeStats" />
+        <close-btn @click.native="resetFilters" />
       </filter-container>
     </transition>
 
     <transition name="slide-north">
       <filter-container v-if="labelFilterOpen">
         <label-stack :labels="labelStats" />
-        <close-btn @click.native="toggleLabelFilter" />
+        <close-btn @click.native="resetFilters" />
       </filter-container>
     </transition>
   </div>
@@ -32,6 +35,7 @@
 <script>
 import fontawesome from '@fortawesome/fontawesome';
 import faTag from '@fortawesome/fontawesome-free-solid/faTag';
+import faClock from '@fortawesome/fontawesome-free-solid/faClock';
 import faPalette from '@fortawesome/fontawesome-free-solid/faPalette';
 import faSave from '@fortawesome/fontawesome-free-solid/faSave';
 import { mapGetters } from 'vuex';
@@ -39,7 +43,8 @@ import { mapGetters } from 'vuex';
 import FilterContainer from './FilterContainer';
 import CloseBtn from './CloseBtn';
 import AnimatedNumber from './AnimatedNumber';
-import ColorMountain from './ColorMountain';
+
+import TimeStack from './TimeStack';
 import LabelStack from './LabelStack';
 import { store } from '../store';
 import { logoUrl } from '../main';
@@ -47,37 +52,42 @@ import { logoUrl } from '../main';
 fontawesome.library.add(faPalette);
 fontawesome.library.add(faTag);
 fontawesome.library.add(faSave);
+fontawesome.library.add(faClock);
 
 export default {
   name: 'FilterMenu',
   components: {
     FilterContainer,
     AnimatedNumber,
-    ColorMountain,
+    TimeStack,
     LabelStack,
     CloseBtn,
   },
   data() {
     return {
-      colorFilterOpen: false,
+
       labelFilterOpen: false,
-      colorStats: [],
+      timeFilterOpen: false,
+
       labelStats: [],
+      timeStats: [],
       logoUrl: logoUrl,
       preCalculated: {
         status: false,
-        colorStats: [],
+
         labelStats: [],
+        timeStats: [],
       },
     };
   },
   computed: {
     ...mapGetters([
-      'anyColorFilterIsActive',
+
       'labelFilterIsActive',
+      'anyTimeFilterIsActive',
       'numberOfActiveItems',
       'numberOfItems',
-      'selectedSnappedColorIds',
+      'selectedSnappedTimeIds',
       'selectedLabelIds',
     ]),
   },
@@ -90,17 +100,18 @@ export default {
     openModal() {
       this.$root.$emit('openInfo');
     },
-
-    toggleColorFilter() {
-      if (this.labelFilterOpen) this.labelFilterOpen = false;
-
-      this.colorFilterOpen = !this.colorFilterOpen;
+    toggleTimeFilter() {
+      this.timeFilterOpen = !this.timeFilterOpen;
     },
 
     toggleLabelFilter() {
-      if (this.colorFilterOpen) this.colorFilterOpen = false;
-
       this.labelFilterOpen = !this.labelFilterOpen;
+    },
+    resetFilters() {
+      store.commit('replaceSnappedTimeIds', []);
+      store.commit('replaceLabelIds', []);
+      store.commit('resetVisibleLimit');
+      this.$root.$emit('triggerFiltering');
     },
 
     executeFiltering() {
@@ -108,40 +119,52 @@ export default {
       const t0 = performance.now();
       let finalList = store.state.allItems;
 
-      if (!this.anyColorFilterIsActive && !this.labelFilterIsActive && this.preCalculated.status) {
+      if (!this.anyTimeFilterIsActive && !this.labelFilterIsActive && this.preCalculated.status) {
         console.log('debug: using cache for filtering.');
         store.commit('addActiveItems', finalList);
 
-        this.colorStats = this.preCalculated.colorStats;
+      
         this.labelStats = this.preCalculated.labelStats;
+        this.timeStats = this.preCalculated.timeStats;
 
         console.log('debug: reseting visibleLimit');
         store.commit('resetVisibleLimit');
         window.scrollTo(0, 0);
         return;
       }
+      this.selectedSnappedTimeIds.forEach(time => {
+console.log(this.selectedSnappedTimeIds)
+        finalList = finalList.filter(item => item.time.includes(time));
+      });
 
       this.selectedLabelIds.forEach(label => {
-        finalList = finalList.filter(item => item.application.labels.includes(label));
+        finalList = finalList.filter(item => item.labels.includes(label));
       });
 
-      this.selectedSnappedColorIds.forEach(color => {
-        finalList = finalList.filter(item => item.application.css_colors.includes(color));
-      });
+    
 
-      let colorStats = [];
-      let remainingColors = [];
+    
       let labelStats = [];
+      let timeStats = [];
       let remainingLabels = [];
+      let remainingTimes = [];
       finalList.forEach(item => {
-        remainingColors = remainingColors.concat(item.application.css_colors);
-        remainingLabels = remainingLabels.concat(item.application.labels);
+        remainingLabels = remainingLabels.concat(item.labels);
+        remainingTimes = remainingTimes.concat(item.time);
       });
+console.log(remainingTimes)
+     remainingTimes.forEach(l => {
+        timeStats.push([l, remainingTimes.filter(x => x === l).length]);
+      });
+      timeStats = Array.from(new Set(timeStats.map(JSON.stringify)), JSON.parse).filter(y => y[1] > 2);
 
-      remainingColors.forEach(c => {
-        colorStats.push([c, remainingColors.filter(x => x === c).length]);
+      const Tmax = timeStats.reduce((tot, lab) => Math.max(tot, lab[1]), 0);
+      this.timeStats = timeStats.map(l => {
+        const norm = ((l[1] - 2) / (Tmax - 2));
+        l[1] = norm * 30 + 10;
+        l[1] += 'px';
+        return l;
       });
-      this.colorStats = Array.from(new Set(colorStats.map(JSON.stringify)), JSON.parse).filter(y => y[1] > 2);
 
       remainingLabels.forEach(l => {
         labelStats.push([l, remainingLabels.filter(x => x === l).length]);
@@ -155,11 +178,11 @@ export default {
         l[1] += 'px';
         return l;
       });
-
+console.log(this.timeStats)
       // cache
       if (!this.preCalculated.status) {
-        this.preCalculated.colorStats = this.colorStats;
         this.preCalculated.labelStats = this.labelStats;
+        this.preCalculated.timeStats = this.timeStats;
         this.preCalculated.status = true;
       }
 
@@ -171,6 +194,7 @@ export default {
       console.log('debug: reseting visibleLimit');
       store.commit('resetVisibleLimit');
       window.scrollTo(0, 0);
+console.log(finalList)
     },
 
   },

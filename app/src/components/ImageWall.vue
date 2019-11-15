@@ -7,7 +7,6 @@
         <object-view :object="item" />
       </div>
     </div>
-    <palette v-if="isAtEndOfFeed" />
   </div>
 </template>
 
@@ -16,7 +15,7 @@ import imagesLoaded from 'vue-images-loaded';
 
 import ObjectView from './ObjectView';
 import FilterMenu from './FilterMenu';
-import Palette from './Palette';
+
 import { store } from '../store';
 
 export default {
@@ -24,7 +23,6 @@ export default {
   components: {
     ObjectView,
     FilterMenu,
-    Palette,
   },
   directives: {
     imagesLoaded,

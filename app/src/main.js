@@ -14,7 +14,7 @@ Vue.use(VueResource);
 Vue.config.productionTip = false;
 
 // the URL to your logo 90x90 pixels are known to work
-export const logoUrl = 'https://via.placeholder.com/90x90?text=logo';
+export const logoUrl = 'https://malmo.se/images/18.7e72b5fc1567efb9afab093/1491302594458/Malmostad_logo_RGB_600px_72dpi.jpg';
 
 let locale = 'en';
 // remove these 3 lines to disable Swedish

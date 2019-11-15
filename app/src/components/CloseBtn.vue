@@ -1,14 +1,14 @@
 <template>
   <div role="button">
-    <i aria-label="close" class="fas fa-times" />
+    <i aria-label="close" class="fas fa-trash-alt" />
   </div>
 </template>
 
 <script>
 import fontawesome from '@fortawesome/fontawesome';
-import faTimes from '@fortawesome/fontawesome-free-solid/faTimes';
+import faTrashAlt from '@fortawesome/fontawesome-free-solid/faTrashAlt';
 
-fontawesome.library.add(faTimes);
+fontawesome.library.add(faTrashAlt);
 
 export default {
   name: 'CloseBtn',

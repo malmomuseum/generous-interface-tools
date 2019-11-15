@@ -5,15 +5,9 @@ import shelve
 from itertools import islice
 
 import requests
-from google.oauth2 import service_account
-from google.cloud import vision
 
-from dataskakare import Europeana
-from dataskakare import GoogleVision
 import dataskakare.data_transformation as transformation
 
-from colorsnap.palettes import CSS_3
-from colorsnap import snap_color
 
 class ItemStorage():
     def __init__(self, item_type, provider, item):
@@ -21,101 +15,116 @@ class ItemStorage():
         self.provider = provider
         self.type = item_type
 
-cache = shelve.open('credentials_cache')
+# K-samsök supports JOSN if given the following Accept header
+headers = {
+    'Accept': 'application/json'
+}
 
-if 'europeana_public_key' in cache:
-    search = cache['europeana_public_key']
-else:
-    print('What\'s your Europeana API key?')
-    search = Europeana(input())
-    cache['europeana_public_key'] = search
+# We will work with two of K-samsöks methods search/fields for getting data
+# and statisticSearch for automatic statistics
+endpoint = 'http://www.kulturarvsdata.se/ksamsok/api'
+endpoint_fields = '{}?&x-api=test&method=search&hitsPerPage=500&recordSchema=xml'.format(endpoint)
+endpoint_facet = '{}?&x-api=test&method=statisticSearch&removeBelow=1'.format(endpoint)
 
-if 'gsa_file' in cache:
-    vision = cache['gsa_file']
-else:
-    print('What\'s the absolute path to your Google service account file?')
-    vision = input()
-    cache['gsa_file'] = vision
+# K-samsök uses the query language CQL
+# it allows you to create very advanced queries
+# https://www.loc.gov/standards/sru/cql/
+    
+# K-samsök has a lot of fields that you can query:
+# https://www.raa.se/hitta-information/k-samsok/att-anvanda-k-samsok/index-for-statistic-facet/
+# https://www.raa.se/hitta-information/k-samsok/att-anvanda-k-samsok/ytterligare-index-for-sok/
+    
+# Lets ask K-samsök for photos with images (thumbnails) which were taken before 1890
+query = 'serviceOrganization="mm" AND itemType="objekt/föremål" AND text=verktyg AND thumbnailExists=j'
 
-vision = GoogleVision(vision)
-cache.close()
+# Byt thumbnail mot low resolution source när Albin säger till
+# Lets also specify which fields we want to recive
+fields = 'itemLabel,fromTime,thumbnail,itemKeyWord,url'
+
+# the following is a generator
+# a generator is similar to a function
+# but insead of returning something once
+# it returns mulityply things which you can loop over
+# this particular generator uses K-samsöks methods search/fields to recive data
+# you can resuse this generator in you own projects
+def search_field_generator(query, fields):
+    # initial query to know how many results we get
+    query_url = '{}&query={}&fields={}&startRecord='.format(endpoint_fields, query, fields)
+    r = requests.get(query_url, headers=headers)
+    json = r.json()
+
+    # K-samsök only returns 500 results in a single request
+    # therefor we need to use the total number of results
+    # to calculate the number of request we could potentially need to do
+    total_results = json['result']['totalHits']
+    required_n_requests = math.ceil(total_results / 500)
+
+    # now we can start querying while keeping track of where in the results we are
+    count = 0
+    while required_n_requests > count:
+        start_record = count * 500
+        count += 1
+
+        r = requests.get(query_url + str(start_record), headers=headers)
+        response_data = r.json()
+
+        for record in response_data['result']['records']['record']:
+            # sometimes there are empty records and those has no fields :-(
+            if not len(record) == 2:
+                continue
+                
+            item_to_yield = {}
+            
+            # some fields can appear multiply times
+            # therefor we need to merge those to lists if needed
+            for field in record['field']:
+                # if the field is already a list 
+                if isinstance(item_to_yield.get(field['name'], False), list):
+                    item_to_yield[field['name']].append(field['content'])
+                # if it's not yet a list but we found the same field name/key again
+                elif item_to_yield.get(field['name'], False):
+                    item_to_yield[field['name']] = list([item_to_yield[field['name']], field['content']])
+                # default to just a regular value
+                else:
+                    item_to_yield[field['name']] = field['content']
+
+            yield item_to_yield
+
+
+
+
+
+# START
+# byt thumbnail till lower resolution source när Albin säger till
+
 
 print('This might take a while...')
 
-unprocessed_items = list()
+final_items = list()
+for item in search_field_generator(query, fields):
+    processed_item = dict()
 
-for item in islice(search.generic_query_generator('qf=DATA_PROVIDER%3A"Nationalmuseum%2C+Sweden"&query=%28paintings+AND+%28bröstbild+OR+porträtt%29%29+OR+dräkt+OR+mode+OR+textil+OR+smycke&reusability=open&thumbnail=true'), 1000):
-    unprocessed_items.append(ItemStorage('none', 'none', item))
 
-for item in islice(search.generic_query_generator('qf=DATA_PROVIDER%3A"Världskulturmuseet"&query=dräkt+OR+textil+OR+smycke'), 1000):
-    unprocessed_items.append(ItemStorage('none', 'none', item))
-
-for item in islice(search.generic_query_generator('qf=costume&query=europeana_collectionName%3A(2048211_Ag_EU_EuropeanaFashion_1019)'), 1000):
-    unprocessed_items.append(ItemStorage('none', 'none', item))
-
-for item in islice(search.generic_query_generator('qf=DATA_PROVIDER%3A"Världskulturmuseet"&qf=DATA_PROVIDER%3A"Östasiatiska+museet"&qf=DATA_PROVIDER%3A"Etnografiska+museet"&query=%28%28kimono+OR+träsnitt+OR+inro+OR+netsuke+OR+solfjäder+OR+docka%29+AND+japan%29&thumbnail=true'), 1000):
-    unprocessed_items.append(ItemStorage('none', 'none', item))
-
-for item in islice(search.generic_query_generator('query=NOT+oddner+AND+%28dräkt+OR+mode+OR+kläder+OR+textil+OR+smycke%29&qf=DATA_PROVIDER%3A"Malmö%20museer"&reusability=open&reusability=restricted&thumbnail=true'), 1000):
-    unprocessed_items.append(ItemStorage('none', 'none', item))
-
-result = list()
-indexed_ids = list() # to avoid duplicates
-for item in unprocessed_items:
-    if item.item['id'] in indexed_ids:
+    if not 'itemKeyWord' in item:
         continue
-
-    if item.item['rights'][0] == 'http://rightsstatements.org/vocab/InC/1.0/':
+    if not 'fromTime' in item:
         continue
+    if isinstance(item['itemKeyWord'], str):
+        item['itemKeyWord'] = list([item['itemKeyWord']])
+    if isinstance(item['fromTime'], int):
+        item['fromTime'] = list([item['fromTime']])
 
-    output = {}
-    output['application'] = {}
 
-    output['europeana_record'] = item.item['id']
-    output['dc_title'] = item.item['title'][0]
-    output['edm_data_provider'] = item.item['dataProvider'][0]
-    output['edm_rights'] = item.item['rights'][0]
-    output['edm_is_shown_at'] = item.item['edmIsShownAt'][0]
-    output['dc_description'] = ''
-    output['edm_preview'] = item.item['edmPreview'][0]
-    if 'dcDescription' in item.item:
-        output['dc_description'] = item.item['dcDescription'][0]
+    processed_item['url'] = item['url']
+    processed_item['rights'] = 'hej123'
+    processed_item['time'] = item['fromTime']
+    processed_item['title'] = item['itemLabel']
+    processed_item['provider'] = 'malmö museer'
+    processed_item['image'] = item['thumbnail']
+    processed_item['labels'] = item['itemKeyWord']
 
-    colors = vision.get_colors(output['edm_preview'])
 
-    output['application']['css_colors'] = list()
-    for color in colors:
-        css_color = snap_color(CSS_3, color['hex'])[1]
-        if css_color not in output['application']['css_colors']:
-            output['application']['css_colors'].append(css_color)
-
-    # if lavender and darkgrey are the only colors it's likely that this is a broken thumbnail.
-    if len(output['application']['css_colors']) == 2:
-        if 'darkgrey' in output['application']['css_colors'] and 'lavender' in output['application']['css_colors']:
-            continue
-
-    output['application']['labels'] = list()
-    labels = vision.get_labels(output['edm_preview'])
-    for label in labels:
-        if label['score'] > 0.5:
-            output['application']['labels'].append(label['value'])
-
-    output['application']['labels'] = list(set(output['application']['labels']))
-
-    # exclude documents
-    if 'document' in output['application']['labels']:
-        continue
-
-    application_description = transformation.get_shortified_description(output['dc_description'])
-    if application_description == '':
-        application_description = output['dc_title']
-    else:
-        application_description = transformation.enchant_description_with_title(application_description, output['dc_title'])
-
-    output['application']['description'] = application_description
-
-    result.append(output)
-    indexed_ids.append(item.item['id'])
+    final_items.append(processed_item)
 
 with open('data.json', 'w') as outfile:
-    json.dump(result, outfile)
+    json.dump(final_items, outfile)
