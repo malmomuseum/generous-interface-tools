@@ -1,5 +1,5 @@
 module.exports = {
-  baseUrl: '/Generous-Interface-Fashion/',
+  baseUrl: '/generous-interface-tools/',
   configureWebpack: {
     devtool: 'source-map',
   },
