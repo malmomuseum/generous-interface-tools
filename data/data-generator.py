@@ -39,7 +39,7 @@ query = 'serviceOrganization="mm" AND itemType="objekt/föremål" AND text=verkt
 
 # Byt thumbnail mot low resolution source när Albin säger till
 # Lets also specify which fields we want to recive
-fields = 'itemLabel,fromTime,thumbnail,itemKeyWord,url'
+fields = 'itemLabel,fromTime,lowresSource,itemKeyWord,url'
 
 # the following is a generator
 # a generator is similar to a function
@@ -120,7 +120,7 @@ for item in search_field_generator(query, fields):
     processed_item['time'] = item['fromTime']
     processed_item['title'] = item['itemLabel']
     processed_item['provider'] = 'malmö museer'
-    processed_item['image'] = item['thumbnail']
+    processed_item['image'] = item['lowresSource']
     processed_item['labels'] = item['itemKeyWord']
 
 
