@@ -120,7 +120,7 @@ export default {
   max-height: calc(100vh - 240px);
   margin: auto;
   display: block;
-  max-width: 100vw;
+  max-width: 30vw;
   margin-bottom: 5px;
 }
 
